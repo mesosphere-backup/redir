@@ -5,8 +5,8 @@ load-balancing strategies.
 
 ## Installing 
 
-Pre-compiled binaries are available for most OS and architectures.
-https://github.com/mesosphere/redir/releases
+Pre-compiled binaries are [available](https://github.com/mesosphere/redir/releases)
+for most OS and architectures. 
 
 Alternatively, if you have Go installed:
 ```shell
