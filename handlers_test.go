@@ -48,7 +48,7 @@ func TestRedirectHandler(t *testing.T) {
 			t.Fatal(err)
 		}
 		rw := httptest.NewRecorder()
-		h := redirectHandler(c, "/", "", tt.strategy)
+		h := redirectHandler(c, "/", "", tt.code, tt.strategy)
 
 		h.ServeHTTP(rw, req)
 		if got, want := rw.Code, tt.code; got != want {
