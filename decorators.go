@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/streadway/handy/cors"
 )
 
 // A decorator decorates an http.Handler with a layer of behaviour
@@ -44,6 +46,13 @@ func logging(w io.Writer) decorator {
 			})
 		})
 	}
+}
+
+// CORS returns a decorator which extends an http.Handler with CORS handling.
+func CORS(origin string) decorator {
+	return cors.Middleware(cors.Config{
+		AllowOrigin: func(*http.Request) string { return origin },
+	})
 }
 
 // methods returns a decorator which wraps an http.Handler with request method

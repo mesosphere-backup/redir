@@ -27,6 +27,7 @@ func main() {
 	fs := flag.NewFlagSet("redir", flag.ContinueOnError)
 	path := fs.String("path", "/go/", "HTTP prefix path route to redirect")
 	strategy := fs.String("strategy", "random", "SRV RR load balancing strategy [random, round-robin]")
+	origin := fs.String("origin", "*", "HTTP CORS Origin to accept")
 	timeout := fs.Duration("timeout", time.Second, "DNS query timeout")
 	fs.Var(&addr, "addr", "HTTP address to listen on")
 	fs.Var(&resolver, "resolver", "DNS resolver addr to use")
@@ -52,6 +53,7 @@ func main() {
 	http.Handle(*path, decorate(
 		redirectHandler(newClient(*timeout), *path, resolver.String(), st),
 		methods("GET"),
+		CORS(*origin),
 		logging(os.Stdout),
 	))
 
