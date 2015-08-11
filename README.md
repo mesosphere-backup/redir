@@ -4,6 +4,11 @@ Redir is an HTTP redirector of DNS SRV records with configurable
 load-balancing strategies.
 
 ## Installing 
+
+Pre-compiled binaries are available for most OS and architectures.
+https://github.com/mesosphere/redir/releases
+
+Alternatively, if you have Go installed:
 ```shell
 $ go get github.com/mesosphere/redir
 ```
