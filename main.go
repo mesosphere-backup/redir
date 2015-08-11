@@ -10,28 +10,26 @@ import (
 )
 
 const description = `
-  This program starts an HTTP server on a given -addr whose requests to /:path/:name
-  are converted into -timeout bound DNS SRV queries against the -resolver.
+  This program starts a CORS enabled HTTP server on a given -addr whose
+  requests to -path are converted into -timeout bound DNS SRV queries against
+  the -resolver. The -param defines where the name to be resolved comes from. 
   Answers returned are load balanced with the given -strategy and used to respond
-  the original request with an HTTP redirect to the chosen SRV record.
+  to the original request with the defined -code and derived location.
 `
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	var (
-		addr     = address(":8080")
-		resolver = address("127.0.0.1:53")
-	)
-
+	cfg := config{addr: ":8080", resolver: ":53"}
 	fs := flag.NewFlagSet("redir", flag.ContinueOnError)
-	path := fs.String("path", "/go/", "HTTP path to handle")
-	strategy := fs.String("strategy", "random", "SRV RR load balancing strategy [random, round-robin]")
-	origin := fs.String("origin", "*", "HTTP CORS Origin to accept")
-	code := fs.Int("code", http.StatusTemporaryRedirect, "HTTP code to respond with")
-	timeout := fs.Duration("timeout", time.Second, "DNS query timeout")
-	fs.Var(&addr, "addr", "HTTP address to listen on")
-	fs.Var(&resolver, "resolver", "DNS resolver addr to use")
+	fs.StringVar(&cfg.path, "path", "/go/", "HTTP path to handle")
+	fs.StringVar(&cfg.param, "param", "request-path", "DNS SRV name source [request-path, host-header]")
+	fs.StringVar(&cfg.strategy, "strategy", "random", "SRV RR load balancing strategy [random, round-robin]")
+	fs.StringVar(&cfg.origin, "origin", "*", "HTTP CORS Origin to accept")
+	fs.IntVar(&cfg.code, "code", http.StatusTemporaryRedirect, "HTTP code to respond with")
+	fs.DurationVar(&cfg.timeout, "timeout", time.Second, "DNS query timeout")
+	fs.Var(&cfg.addr, "addr", "HTTP address to listen on")
+	fs.Var(&cfg.resolver, "resolver", "DNS resolver addr to use")
 
 	fs.SetOutput(os.Stderr)
 	fs.Usage = func() {
@@ -44,23 +42,70 @@ func main() {
 		os.Exit(1)
 	}
 
-	st, ok := strategies[*strategy]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "strategy %q is invalid", strategy)
-		fs.Usage()
-		os.Exit(1)
+	strategy, err := cfg.Strategy()
+	if err != nil {
+		fatal(fs, err)
 	}
 
-	http.Handle(*path, decorate(
-		redirectHandler(newClient(*timeout), *path, resolver.String(), *code, st),
+	param, err := cfg.Param()
+	if err != nil {
+		fatal(fs, err)
+	}
+
+	cli := newClient(cfg.timeout)
+	http.Handle(cfg.path, decorate(
+		redirectHandler(cli, cfg.resolver.String(), cfg.code, strategy, param),
 		methods("GET"),
-		CORS(*origin),
+		CORS(cfg.origin),
 		logging(os.Stdout),
 	))
 
-	fmt.Fprintf(os.Stderr, "Listening on %q and redirecting %s requests\n", addr, *path)
-	if err := http.ListenAndServe(string(addr), nil); err != nil {
+	fmt.Fprintf(os.Stderr, "Listening on %q and redirecting %s requests\n", cfg.addr, cfg.path)
+	if err := http.ListenAndServe(string(cfg.addr), nil); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// config holds the redir program configuration and exposes methods which
+// validate it.
+type config struct {
+	path     string
+	param    string
+	strategy string
+	origin   string
+	code     int
+	timeout  time.Duration
+	addr     address
+	resolver address
+}
+
+// Strategy returns the configured load balancing strategy function.
+func (cfg config) Strategy() (strategy, error) {
+	switch cfg.strategy {
+	case "round-robin", "rr":
+		return roundRobin(0), nil
+	case "random", "rand":
+		return random(time.Now().UnixNano()), nil
+	default:
+		return nil, fmt.Errorf("unsupported strategy %q", cfg.strategy)
+	}
+}
+
+// Param returns the configured DNS SRV name param function.
+func (cfg config) Param() (param, error) {
+	switch cfg.param {
+	case "request-path", "path":
+		return path(cfg.path), nil
+	case "host-header", "host":
+		return header("Host"), nil
+	default:
+		return nil, fmt.Errorf("unsupported param %q", cfg.param)
+	}
+}
+
+func fatal(fs *flag.FlagSet, err error) {
+	fmt.Fprintln(os.Stderr, err)
+	fs.Usage()
+	os.Exit(1)
 }

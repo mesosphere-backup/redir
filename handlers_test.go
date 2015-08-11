@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,29 +27,31 @@ func TestRedirectHandler(t *testing.T) {
 
 	for i, tt := range []struct {
 		strategy
+		param
 		name     string
 		code     int
 		location string
 	}{
-		{roundRobin(0), "_abc._tcp.domain", 303, "http://abc.domain.:5001"},
-		{roundRobin(1), "_abc._tcp.domain", 303, "http://abc.domain.:5002"},
-		{roundRobin(2), "_abc._tcp.domain.", 303, "http://abc.domain.:5003"},
-		{roundRobin(3), "_abc._tcp.domain.", 303, "http://abc.domain.:5000"},
+		{roundRobin(0), path("/"), "_abc._tcp.domain", 303, "http://abc.domain.:5001"},
+		{roundRobin(1), header("Host"), "_abc._tcp.domain", 303, "http://abc.domain.:5002"},
+		{roundRobin(2), path("/"), "_abc._tcp.domain.", 303, "http://abc.domain.:5003"},
+		{roundRobin(3), header("Host"), "_abc._tcp.domain.", 303, "http://abc.domain.:5000"},
 
-		{random(0), "_abc._tcp.domain", 303, "http://abc.domain.:5002"},
-		{random(1), "_abc._tcp.domain", 303, "http://abc.domain.:5001"},
-		{random(2), "_abc._tcp.domain.", 303, "http://abc.domain.:5002"},
-		{random(3), "_abc._tcp.domain.", 303, "http://abc.domain.:5000"},
+		{random(0), path("/"), "_abc._tcp.domain", 303, "http://abc.domain.:5002"},
+		{random(1), header("Host"), "_abc._tcp.domain", 303, "http://abc.domain.:5001"},
+		{random(2), path("/"), "_abc._tcp.domain.", 303, "http://abc.domain.:5002"},
+		{random(3), header("Host"), "_abc._tcp.domain.", 303, "http://abc.domain.:5000"},
 
-		{roundRobin(0), "_missing._tcp.domain.", 400, ""},
-		{random(0), "_missing._tcp.domain.", 400, ""},
+		{roundRobin(0), path("/"), "_missing._tcp.domain.", 400, ""},
+		{random(0), header("Host"), "_missing._tcp.domain.", 400, ""},
 	} {
-		req, err := http.NewRequest("GET", "/"+tt.name, nil)
+		uri := fmt.Sprintf("http://%s/%s", tt.name, tt.name)
+		req, err := http.NewRequest("GET", uri, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		rw := httptest.NewRecorder()
-		h := redirectHandler(c, "/", "", tt.code, tt.strategy)
+		h := redirectHandler(c, "/", tt.code, tt.strategy, tt.param)
 
 		h.ServeHTTP(rw, req)
 		if got, want := rw.Code, tt.code; got != want {

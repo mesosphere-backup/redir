@@ -3,19 +3,12 @@ package main
 import (
 	"math/rand"
 	"sync/atomic"
-	"time"
 
 	"github.com/miekg/dns"
 )
 
 // strategy represents a load balancing strategy
 type strategy func([]dns.RR) *dns.SRV
-
-// strategies holds a map of strategy names to implementations.
-var strategies = map[string]strategy{
-	"round-robin": roundRobin(0),
-	"random":      random(time.Now().UnixNano()),
-}
 
 // random returns a random load balancing strategy seeded with the given seed.
 func random(seed int64) strategy {
