@@ -56,7 +56,7 @@ func main() {
 	http.Handle(cfg.path, decorate(
 		redirectHandler(cli, cfg.resolver.String(), cfg.code, strategy, param),
 		methods("GET"),
-		CORS(cfg.origin),
+		cors(cfg.origin),
 		logging(os.Stdout),
 	))
 
