@@ -25,7 +25,7 @@ func main() {
 	)
 
 	fs := flag.NewFlagSet("redir", flag.ContinueOnError)
-	path := fs.String("path", "/go/", "HTTP prefix path route to redirect")
+	path := fs.String("path", "/go/", "HTTP path to handle")
 	strategy := fs.String("strategy", "random", "SRV RR load balancing strategy [random, round-robin]")
 	origin := fs.String("origin", "*", "HTTP CORS Origin to accept")
 	code := fs.Int("code", http.StatusTemporaryRedirect, "HTTP code to respond with")

@@ -14,8 +14,9 @@ $ redir -h
 
 usage: redir [flags]
   -addr=:8080: HTTP address to listen on
+  -code=307: HTTP code to respond with
   -origin="*": HTTP CORS Origin to accept
-  -path="/go/": HTTP prefix path route to redirect
+  -path="/go/": HTTP path to handle
   -resolver=127.0.0.1:53: DNS resolver addr to use
   -strategy="random": SRV RR load balancing strategy [random, round-robin]
   -timeout=1s: DNS query timeout
