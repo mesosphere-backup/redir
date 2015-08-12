@@ -1,4 +1,4 @@
-# Redir
+# Redir [![Circle CI](https://circleci.com/gh/mesosphere/redir.svg?style=svg)](https://circleci.com/gh/mesosphere/redir)
 
 Redir is an HTTP redirector of DNS SRV records with configurable
 load-balancing strategies.
